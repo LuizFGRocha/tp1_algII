@@ -1,5 +1,6 @@
 import sys
-from typing import List
+from typing import List, Dict
+import plotly.graph_objects as go
 
 
 class Point:
@@ -23,7 +24,70 @@ class Polygon:
     self.points.remove(i_point)
 
   def remove_point_at(self, index: int):
-    self.points.pop(index)
+    """
+    Removes a point at a given index. 
+    If the index is greater than the number of points, it will wrap around.
+    """
+    self.points.pop(index % len(self.points))
+
+
+class Node:
+  point: Point
+  neighbors: List[int]
+
+  def __init__(self, point: Point):
+    self.point = point
+    self.neighbors = []
+
+
+class Graph:
+  nodes: List[Node]
+
+  def __init__(self):
+    self.nodes = []
+
+  def add_node(self, i_node: Node) -> None:
+    self.nodes.append(i_node)
+  
+  # Doesn't remove nodes so that the index of the nodes remains the same
+
+  def add_edge(self, start: int, end: int) -> None:
+    self.nodes[start].neighbors.append(end)
+    self.nodes[end].neighbors.append(start)
+
+  def remove_edge(self, start: int, end: int) -> None:
+    self.nodes[start].neighbors.remove(end)
+    self.nodes[end].neighbors.remove(start)
+
+
+def plot_polygon(polygon: Polygon):
+  x_coords = [point.x for point in polygon.points]
+  y_coords = [point.y for point in polygon.points]
+  
+  if len(polygon.points) > 0:
+    x_coords.append(polygon.points[0].x)
+    y_coords.append(polygon.points[0].y)
+
+  fig = go.Figure(go.Scatter(x=x_coords, y=y_coords, fill="toself", mode='lines+markers'))
+  
+  fig.update_layout(title="Polígono", xaxis_title="X", yaxis_title="Y")
+
+  fig.show()
+
+
+def plot_graph(graph: Graph):
+  x_coords = [node.point.x for node in graph.nodes]
+  y_coords = [node.point.y for node in graph.nodes]
+
+  fig = go.Figure(go.Scatter(x=x_coords, y=y_coords, mode='markers'))
+
+  for node in graph.nodes:
+    for neighbor in node.neighbors:
+      fig.add_trace(go.Scatter(x=[node.point.x, graph.nodes[neighbor].point.x], y=[node.point.y, graph.nodes[neighbor].point.y], mode='lines'))
+
+  fig.update_layout(title="Grafo", xaxis_title="X", yaxis_title="Y")
+
+  fig.show()
 
 
 def parse_input(filename: str) -> Polygon:
@@ -45,16 +109,89 @@ def parse_input(filename: str) -> Polygon:
   return polygon
 
 
-def triangulate(polygon: Polygon) -> Polygon:
-  pass
+def orientation(p1: Point, p2: Point, p3: Point) -> int:
+  """
+  Returns the orientation of the 3 points.
+  1: Clockwise
+  0: Collinear
+  -1: Counter clockwise
+  """
+  val = (p2.y - p1.y) * (p3.x - p2.x) - (p2.x - p1.x) * (p3.y - p2.y)
+
+  if val == 0:
+    return 0
+  return 1 if val > 0 else -1
+
+
+def point_in_triangle(p1: Point, p2: Point, p3: Point, p: Point) -> bool:
+  # Precisa tratar caso de divisão por 0
+  points: List[Point] = [p1, p2, p3]
+
+  crossings: int = 0
+  for i in range(3):
+    slope: float = (points[(i + 1) % 3].y - points[i].y) / (points[(i + 1) % 3].x - points[i].x)
+    cond1: bool = points[i].x <= p.x < points[(i + 1) % 3].x
+    cond2: bool = points[(i + 1) % 3].x <= p.x < points[i].x
+    above: bool = p.y < slope * (p.x - points[i].x) + points[i].y
+    if (cond1 or cond2) and above:
+      crossings += 1
+
+  return crossings % 2 != 0
+
+
+def no_point_inside(p1: Point, p2: Point, p3: Point, polygon: Polygon) -> bool:
+  for p in polygon.points:
+    if p != p1 and p != p2 and p != p3:
+      if point_in_triangle(p1, p2, p3, p):
+        return False
+  return True
+
+
+def is_ear(polygon: Polygon, position: int) -> bool:
+  p1 = polygon.points[position]
+  p2 = polygon.points[(position + 1) % len(polygon.points)]
+  p3 = polygon.points[(position + 2) % len(polygon.points)]
+
+  if orientation(p1, p2, p3) == -1 and no_point_inside(p1, p2, p3, polygon):
+    return True
+  
+  return False
+
+
+def triangulate(polygon: Polygon) -> Graph:
+  plot_polygon(polygon)
+
+  graph = Graph()
+
+  for point in polygon.points:
+    graph.add_node(Node(point))
+
+  for node in range(len(graph.nodes)):
+    graph.add_edge(node, (node + 1) % len(graph.nodes))
+
+  while len(polygon.points) > 3:
+
+    # For each position, checks it and the next two
+    # Dá pra otimizar essa parte, eu acho
+    for pos in range(len(polygon.points)):
+      if is_ear(polygon, pos):
+        graph.add_edge(pos, (pos + 2) % len(polygon.points))
+        polygon.remove_point_at(pos + 1)
+        plot_polygon(polygon)
+        break
+
+  return graph
 
 
 def main():
   filename = sys.argv[1]
   polygon = parse_input(filename)
 
-  for point in polygon.points:
-    print(f'({point.x}, {point.y})')
+  graph = triangulate(polygon)
+
+  print("Triangulação realizada com sucesso!")
+
+  plot_graph(graph)
     
 
 if __name__ == '__main__':
