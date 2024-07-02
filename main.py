@@ -1,5 +1,5 @@
 import sys
-from typing import List, Dict
+from typing import List, Dict, Set
 import plotly.graph_objects as go
 
 
@@ -58,6 +58,16 @@ class Graph:
   def remove_edge(self, start: int, end: int) -> None:
     self.nodes[start].neighbors.remove(end)
     self.nodes[end].neighbors.remove(start)
+
+  def edges(self) -> Set[Set[int]]:
+    edges = set()
+    for i in range(len(self.nodes)):
+      for neighbor in self.nodes[i].neighbors:
+        edges.add(frozenset([i, neighbor]))
+    return edges
+  
+  def nodes(self) -> List[int]:
+    return [i for i in range(len(self.nodes))]
 
 
 def plot_polygon(polygon: Polygon):
@@ -181,6 +191,15 @@ def triangulate(polygon: Polygon) -> Graph:
         break
 
   return graph
+
+
+def get_dual(graph: Graph) -> Graph:
+  pass
+
+
+def color(graph: Graph, dual: Graph) -> Dict[int, int]:
+  # Implementar usando DFS
+  pass
 
 
 def main():
