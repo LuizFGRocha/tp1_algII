@@ -56,6 +56,26 @@ class Graph:
     self.nodes[start].neighbors.append(end)
     self.nodes[end].neighbors.append(start)
 
+  def add_edge_to_points(self, start: Point, end: Point) -> None:
+    start_index: int = -1
+    end_index: int = -1
+
+    for i in range(len(self.nodes)):
+      if self.nodes[i].point == start:
+        start_index = i
+      if self.nodes[i].point == end:
+        end_index = i
+
+    if start_index == -1:
+      self.add_node(Node(start))
+      start_index = len(self.nodes) - 1
+
+    if end_index == -1:
+      self.add_node(Node(end))
+      end_index = len(self.nodes) - 1
+
+    self.add_edge(start_index, end_index)
+
   def remove_edge(self, start: int, end: int) -> None:
     self.nodes[start].neighbors.remove(end)
     self.nodes[end].neighbors.remove(start)
@@ -78,7 +98,7 @@ class Graph:
       string += f"{int(self.nodes[i].point.x)} {int(self.nodes[i].point.y)} "
       string += f"{len(self.nodes[i].neighbors)} "
       for neighbor in self.nodes[i].neighbors:
-        string += f"{neighbor} "
+        string += f"{neighbor + 1} "
       string += "\n"
 
     return string
@@ -155,6 +175,7 @@ def point_in_triangle(p1: Point, p2: Point, p3: Point, p: Point) -> bool:
   crossings: int = 0
   for i in range(3):
 
+    # todo verificar se esse problema tá resolvido
     slope: float
     if points[i].x == points[(i + 1) % 3].x:
       slope = float('inf')
@@ -205,8 +226,9 @@ def triangulate(polygon: Polygon) -> Graph:
     # Dá pra otimizar essa parte, eu acho
     for pos in range(len(polygon.points)):
       if is_ear(polygon, pos):
-        graph.add_edge(pos, (pos + 2) % len(polygon.points))
-        polygon.remove_point_at(pos + 1)
+        # todo melhorar a eficiência da próxima linha talvez
+        graph.add_edge_to_points(polygon.points[pos], polygon.points[(pos + 2) % len(polygon.points)])
+        polygon.remove_point_at((pos + 1) % len(polygon.points))
         break
 
   return graph
@@ -241,6 +263,8 @@ def main():
   polygon = parse_input(filename)
 
   graph = triangulate(polygon)
+
+  plot_graph(graph)
 
   get_faces(graph)
     
