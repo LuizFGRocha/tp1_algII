@@ -268,9 +268,26 @@ def get_dual(graph: Graph) -> Graph:
     return dual_graph
 
 def color(graph: Graph, dual: Graph) -> Dict[int, int]:
-  # Implementar usando DFS
-  pass
+    def is_safe(node: int, c: int) -> bool:
+        for neighbor in dual.nodes[node].neighbors:
+            if neighbor in color_map and color_map[neighbor] == c:
+                return False
+        return True
 
+    def dfs(node: int) -> bool:
+        for color in range(3):
+            if is_safe(node, color):
+                color_map[node] = color
+                if all(neighbor in color_map or dfs(neighbor) for neighbor in dual.nodes[node].neighbors):
+                    return True
+                del color_map[node]
+        return False
+
+    color_map = {}
+    if not dfs(0):
+        raise ValueError("Não foi possível colorir o grafo dual com 3 cores")
+    
+    return color_map
 
 def main():
   filename = sys.argv[1]
