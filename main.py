@@ -1,6 +1,7 @@
 import sys
 from typing import List, Dict, Set
 import plotly.graph_objects as go
+import subprocess
 
 
 class Point:
@@ -68,6 +69,19 @@ class Graph:
   
   def nodes(self) -> List[int]:
     return [i for i in range(len(self.nodes))]
+  
+  def to_string(self) -> str:
+    string: str = ""
+    string += f"{len(self.nodes)} {len(self.edges())}\n"
+
+    for i in range(len(self.nodes)):
+      string += f"{int(self.nodes[i].point.x)} {int(self.nodes[i].point.y)} "
+      string += f"{len(self.nodes[i].neighbors)} "
+      for neighbor in self.nodes[i].neighbors:
+        string += f"{neighbor} "
+      string += "\n"
+
+    return string
 
 
 def plot_polygon(polygon: Polygon):
@@ -104,14 +118,15 @@ def parse_input(filename: str) -> Polygon:
   polygon = Polygon()
 
   with open(filename, 'r') as file:
-    inputs = file.readline().split('   ')
+    size: int = int(file.readline())
 
-    vertex_count = int(inputs[0])
-    for i in range(1, 2 * vertex_count, 2):
-      first_str = inputs[i].split('/')
+    for i in range(size):
+      inputs = file.readline().split()
+
+      first_str = inputs[0].split('/')
       first_value = float(first_str[0]) / float(first_str[1])
 
-      second_str = inputs[i+1].split('/')
+      second_str = inputs[1].split('/')
       second_value = float(second_str[0]) / float(second_str[1])
 
       polygon.add_point(Point(first_value, second_value))
@@ -139,7 +154,13 @@ def point_in_triangle(p1: Point, p2: Point, p3: Point, p: Point) -> bool:
 
   crossings: int = 0
   for i in range(3):
-    slope: float = (points[(i + 1) % 3].y - points[i].y) / (points[(i + 1) % 3].x - points[i].x)
+
+    slope: float
+    if points[i].x == points[(i + 1) % 3].x:
+      slope = float('inf')
+    else:
+      slope = (points[(i + 1) % 3].y - points[i].y) / (points[(i + 1) % 3].x - points[i].x)
+
     cond1: bool = points[i].x <= p.x < points[(i + 1) % 3].x
     cond2: bool = points[(i + 1) % 3].x <= p.x < points[i].x
     above: bool = p.y < slope * (p.x - points[i].x) + points[i].y
@@ -169,8 +190,7 @@ def is_ear(polygon: Polygon, position: int) -> bool:
 
 
 def triangulate(polygon: Polygon) -> Graph:
-  plot_polygon(polygon)
-
+  # todo verificar se está funcionando
   graph = Graph()
 
   for point in polygon.points:
@@ -187,14 +207,28 @@ def triangulate(polygon: Polygon) -> Graph:
       if is_ear(polygon, pos):
         graph.add_edge(pos, (pos + 2) % len(polygon.points))
         polygon.remove_point_at(pos + 1)
-        plot_polygon(polygon)
         break
 
   return graph
 
 
+def get_faces(graph: Graph) -> List[Set[int]]:
+  # todo verificar se está funcionando
+  input: str = graph.to_string()
+
+  print(input)
+
+  result = subprocess.run(["./main"], input=input, text=True, capture_output=True)
+
+  print(result.stdout)
+  print(result.stderr)
+
+  return
+
+
 def get_dual(graph: Graph) -> Graph:
   pass
+
 
 
 def color(graph: Graph, dual: Graph) -> Dict[int, int]:
@@ -208,9 +242,7 @@ def main():
 
   graph = triangulate(polygon)
 
-  print("Triangulação realizada com sucesso!")
-
-  plot_graph(graph)
+  get_faces(graph)
     
 
 if __name__ == '__main__':
