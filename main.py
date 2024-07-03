@@ -249,9 +249,23 @@ def get_faces(graph: Graph) -> List[Set[int]]:
 
 
 def get_dual(graph: Graph) -> Graph:
-  pass
+    faces = get_faces(graph)
+    dual_graph = Graph()
 
+    # Cria um nó para cada face no grafo original
+    for i, face in enumerate(faces):
+        face_center = Point(sum(graph.nodes[v].point.x for v in face) / len(face),
+                            sum(graph.nodes[v].point.y for v in face) / len(face))
+        dual_graph.add_node(Node(face_center))
 
+    # Conecta nós no grafo dual se as faces originais compartilharem uma aresta
+    face_to_node = {frozenset(face): i for i, face in enumerate(faces)}
+    for edge in graph.edges():
+        incident_faces = [i for i, face in enumerate(faces) if edge.issubset(face)]
+        if len(incident_faces) == 2:
+            dual_graph.add_edge(incident_faces[0], incident_faces[1])
+
+    return dual_graph
 
 def color(graph: Graph, dual: Graph) -> Dict[int, int]:
   # Implementar usando DFS
