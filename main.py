@@ -134,6 +134,25 @@ def plot_graph(graph: Graph):
   fig.show()
 
 
+def plot_graph_colored(graph: Graph, color_map: dict):
+    fig = go.Figure()
+
+    # Adiciona os nós ao gráfico
+    for node in graph.nodes:
+        fig.add_trace(go.Scatter(x=[node.point.x], y=[node.point.y], mode='markers',
+                                 marker=dict(color=color_map[node.id])))
+
+    # Adiciona as arestas ao gráfico
+    for node in graph.nodes:
+        for neighbor in node.neighbors:
+            fig.add_trace(go.Scatter(x=[node.point.x, graph.nodes[neighbor].point.x],
+                                     y=[node.point.y, graph.nodes[neighbor].point.y],
+                                     mode='lines', line=dict(color='grey')))
+
+    fig.update_layout(title="Grafo Colorido", xaxis_title="X", yaxis_title="Y")
+    fig.show()
+
+
 def parse_input(filename: str) -> Polygon:
   polygon = Polygon()
 
@@ -238,14 +257,24 @@ def get_faces(graph: Graph) -> List[Set[int]]:
   # todo verificar se está funcionando
   input: str = graph.to_string()
 
-  print(input)
-
   result = subprocess.run(["./main"], input=input, text=True, capture_output=True)
+  output: str = result.stdout
 
-  print(result.stdout)
-  print(result.stderr)
+  output = output.split('\n')
+  output.pop(0) # Remove a quantidade de vértices
 
-  return
+  faces: List[Set[int]] = []
+
+  for face in output:
+    vertices = face.split(' ')
+
+    if vertices[0] != '4':
+      continue
+
+    # todo ver se a ordenação do set dá problema
+    faces.append(set([int(vertex) - 1 for vertex in vertices[1:]]))
+
+  return faces
 
 
 def get_dual(graph: Graph) -> Graph:
@@ -265,7 +294,11 @@ def get_dual(graph: Graph) -> Graph:
         if len(incident_faces) == 2:
             dual_graph.add_edge(incident_faces[0], incident_faces[1])
 
+    plot_graph(graph)
+    plot_graph(dual_graph)
+
     return dual_graph
+
 
 def color(graph: Graph, dual: Graph) -> Dict[int, int]:
     def is_safe(node: int, c: int) -> bool:
@@ -289,13 +322,15 @@ def color(graph: Graph, dual: Graph) -> Dict[int, int]:
     
     return color_map
 
+
 def main():
-  filename = sys.argv[1]
-  polygon = parse_input(filename)
+  filename: str = sys.argv[1]
+  polygon: Polygon = parse_input(filename)
+  graph: Graph = triangulate(polygon)
+  dual: Graph = get_dual(graph)
+  color_map: Dict[int, int] = color(graph, dual)
 
-  graph = triangulate(polygon)
-
-  plot_graph(graph)
+  plot_graph_colored(dual, color_map)
 
   get_faces(graph)
     
