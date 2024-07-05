@@ -6,143 +6,145 @@ import subprocess
 
 class Point:
 
-  def __init__(self, x: float, y: float):
-    self.x: float = x
-    self.y: float = y
+    def __init__(self, x: float, y: float):
+        self.x: float = x
+        self.y: float = y
 
 
 class Polygon:
 
-  points: List[Point]
+    points: List[Point]
 
-  def __init__(self):
-    self.points = []
+    def __init__(self):
+        self.points = []
 
-  def add_point(self, i_point: Point) -> None:
-    self.points.append(i_point)
+    def add_point(self, i_point: Point) -> None:
+        self.points.append(i_point)
 
-  def remove_point(self, i_point: Point) -> None:
-    self.points.remove(i_point)
+    def remove_point(self, i_point: Point) -> None:
+        self.points.remove(i_point)
 
-  def remove_point_at(self, index: int):
-    """
-    Removes a point at a given index. 
-    If the index is greater than the number of points, it will wrap around.
-    """
-    self.points.pop(index % len(self.points))
+    def remove_point_at(self, index: int):
+        """
+        Removes a point at a given index. 
+        If the index is greater than the number of points, it will wrap around.
+        """
+        self.points.pop(index % len(self.points))
 
 
 class Node:
-  point: Point
-  neighbors: List[int]
+    point: Point
+    neighbors: List[int]
 
-  def __init__(self, point: Point):
-    self.point = point
-    self.neighbors = []
+    def __init__(self, point: Point):
+        self.point = point
+        self.neighbors = []
 
 
 class Graph:
-  nodes: List[Node]
+    nodes: List[Node]
 
-  def __init__(self):
-    self.nodes = []
+    def __init__(self):
+        self.nodes = []
 
-  def add_node(self, i_node: Node) -> None:
-    self.nodes.append(i_node)
-  
-  # Doesn't remove nodes so that the index of the nodes remains the same
+    def add_node(self, i_node: Node) -> None:
+        self.nodes.append(i_node)
 
-  def add_edge(self, start: int, end: int) -> None:
-    self.nodes[start].neighbors.append(end)
-    self.nodes[end].neighbors.append(start)
+    # Doesn't remove nodes so that the index of the nodes remains the same
 
-  def add_edge_to_points(self, start: Point, end: Point) -> None:
-    start_index: int = -1
-    end_index: int = -1
+    def add_edge(self, start: int, end: int) -> None:
+        self.nodes[start].neighbors.append(end)
+        self.nodes[end].neighbors.append(start)
 
-    for i in range(len(self.nodes)):
-      if self.nodes[i].point == start:
-        start_index = i
-      if self.nodes[i].point == end:
-        end_index = i
+    def add_edge_to_points(self, start: Point, end: Point) -> None:
+        start_index: int = -1
+        end_index: int = -1
 
-    if start_index == -1:
-      self.add_node(Node(start))
-      start_index = len(self.nodes) - 1
+        for i in range(len(self.nodes)):
+            if self.nodes[i].point == start:
+                start_index = i
+            if self.nodes[i].point == end:
+                end_index = i
 
-    if end_index == -1:
-      self.add_node(Node(end))
-      end_index = len(self.nodes) - 1
+        if start_index == -1:
+            self.add_node(Node(start))
+            start_index = len(self.nodes) - 1
 
-    self.add_edge(start_index, end_index)
+        if end_index == -1:
+            self.add_node(Node(end))
+            end_index = len(self.nodes) - 1
 
-  def remove_edge(self, start: int, end: int) -> None:
-    self.nodes[start].neighbors.remove(end)
-    self.nodes[end].neighbors.remove(start)
+        self.add_edge(start_index, end_index)
 
-  def edges(self) -> Set[Set[int]]:
-    edges = set()
-    for i in range(len(self.nodes)):
-      for neighbor in self.nodes[i].neighbors:
-        edges.add(frozenset([i, neighbor]))
-    return edges
-  
-  def nodes(self) -> List[int]:
-    return [i for i in range(len(self.nodes))]
-  
-  def to_string(self) -> str:
-    string: str = ""
-    string += f"{len(self.nodes)} {len(self.edges())}\n"
+    def remove_edge(self, start: int, end: int) -> None:
+        self.nodes[start].neighbors.remove(end)
+        self.nodes[end].neighbors.remove(start)
 
-    for i in range(len(self.nodes)):
-      string += f"{int(self.nodes[i].point.x)} {int(self.nodes[i].point.y)} "
-      string += f"{len(self.nodes[i].neighbors)} "
-      for neighbor in self.nodes[i].neighbors:
-        string += f"{neighbor + 1} "
-      string += "\n"
+    def edges(self) -> Set[Set[int]]:
+        edges = set()
+        for i in range(len(self.nodes)):
+            for neighbor in self.nodes[i].neighbors:
+                edges.add(frozenset([i, neighbor]))
+        return edges
 
-    return string
+    def nodes(self) -> List[int]:
+        return [i for i in range(len(self.nodes))]
+
+    def to_string(self) -> str:
+        string: str = ""
+        string += f"{len(self.nodes)} {len(self.edges())}\n"
+
+        for i in range(len(self.nodes)):
+            string += f"{int(self.nodes[i].point.x)} {int(self.nodes[i].point.y)} "
+            string += f"{len(self.nodes[i].neighbors)} "
+            for neighbor in self.nodes[i].neighbors:
+                string += f"{neighbor + 1} "
+            string += "\n"
+
+        return string
 
 
 def plot_polygon(polygon: Polygon):
-  x_coords = [point.x for point in polygon.points]
-  y_coords = [point.y for point in polygon.points]
-  
-  if len(polygon.points) > 0:
-    x_coords.append(polygon.points[0].x)
-    y_coords.append(polygon.points[0].y)
+    x_coords = [point.x for point in polygon.points]
+    y_coords = [point.y for point in polygon.points]
 
-  fig = go.Figure(go.Scatter(x=x_coords, y=y_coords, fill="toself", mode='lines+markers'))
-  
-  fig.update_layout(title="Polígono", xaxis_title="X", yaxis_title="Y")
+    if len(polygon.points) > 0:
+        x_coords.append(polygon.points[0].x)
+        y_coords.append(polygon.points[0].y)
 
-  fig.show()
+    fig = go.Figure(go.Scatter(x=x_coords, y=y_coords, fill="toself", mode='lines+markers'))
+
+    fig.update_layout(title="Polígono", xaxis_title="X", yaxis_title="Y")
+
+    fig.show()
 
 
 def plot_graph(graph: Graph):
-  x_coords = [node.point.x for node in graph.nodes]
-  y_coords = [node.point.y for node in graph.nodes]
+    x_coords = [node.point.x for node in graph.nodes]
+    y_coords = [node.point.y for node in graph.nodes]
 
-  fig = go.Figure(go.Scatter(x=x_coords, y=y_coords, mode='markers'))
+    fig = go.Figure(go.Scatter(x=x_coords, y=y_coords, mode='markers'))
 
-  for node in graph.nodes:
-    for neighbor in node.neighbors:
-      fig.add_trace(go.Scatter(x=[node.point.x, graph.nodes[neighbor].point.x], y=[node.point.y, graph.nodes[neighbor].point.y], mode='lines'))
+    for node in graph.nodes:
+        for neighbor in node.neighbors:
+            fig.add_trace(go.Scatter(x=[node.point.x, graph.nodes[neighbor].point.x], y=[node.point.y, graph.nodes[neighbor].point.y], mode='lines'))
 
-  fig.update_layout(title="Grafo", xaxis_title="X", yaxis_title="Y")
+    fig.update_layout(title="Grafo", xaxis_title="X", yaxis_title="Y")
 
-  fig.show()
+    fig.show()
 
 
 def plot_graph_colored(graph: Graph, color_map: dict):
     fig = go.Figure()
 
-    # Adiciona os nós ao gráfico
-    for node in graph.nodes:
-        fig.add_trace(go.Scatter(x=[node.point.x], y=[node.point.y], mode='markers',
-                                 marker=dict(color=color_map[node.id])))
+    for idx, node in enumerate(graph.nodes):
+        if idx not in color_map:
+            print(f"Warning: Node {idx} not in color_map")
+            continue
 
-    # Adiciona as arestas ao gráfico
+        fig.add_trace(go.Scatter(x=[node.point.x], y=[node.point.y], mode='markers',
+                                 marker=dict(color=color_map[idx])))
+
     for node in graph.nodes:
         for neighbor in node.neighbors:
             fig.add_trace(go.Scatter(x=[node.point.x, graph.nodes[neighbor].point.x],
@@ -153,128 +155,130 @@ def plot_graph_colored(graph: Graph, color_map: dict):
     fig.show()
 
 
+
+
 def parse_input(filename: str) -> Polygon:
-  polygon = Polygon()
+    polygon = Polygon()
 
-  with open(filename, 'r') as file:
-    size: int = int(file.readline())
+    with open(filename, 'r') as file:
+        size: int = int(file.readline())
 
-    for i in range(size):
-      inputs = file.readline().split()
+        for i in range(size):
+            inputs = file.readline().split()
 
-      first_str = inputs[0].split('/')
-      first_value = float(first_str[0]) / float(first_str[1])
+            first_str = inputs[0].split('/')
+            first_value = float(first_str[0]) / float(first_str[1])
 
-      second_str = inputs[1].split('/')
-      second_value = float(second_str[0]) / float(second_str[1])
+            second_str = inputs[1].split('/')
+            second_value = float(second_str[0]) / float(second_str[1])
 
-      polygon.add_point(Point(first_value, second_value))
+            polygon.add_point(Point(first_value, second_value))
 
-  return polygon
+    return polygon
 
 
 def orientation(p1: Point, p2: Point, p3: Point) -> int:
-  """
-  Returns the orientation of the 3 points.
-  1: Clockwise
-  0: Collinear
-  -1: Counter clockwise
-  """
-  val = (p2.y - p1.y) * (p3.x - p2.x) - (p2.x - p1.x) * (p3.y - p2.y)
+    """
+    Returns the orientation of the 3 points.
+    1: Clockwise
+    0: Collinear
+    -1: Counter clockwise
+    """
+    val = (p2.y - p1.y) * (p3.x - p2.x) - (p2.x - p1.x) * (p3.y - p2.y)
 
-  if val == 0:
-    return 0
-  return 1 if val > 0 else -1
+    if val == 0:
+        return 0
+    return 1 if val > 0 else -1
 
 
 def point_in_triangle(p1: Point, p2: Point, p3: Point, p: Point) -> bool:
-  # Precisa tratar caso de divisão por 0
-  points: List[Point] = [p1, p2, p3]
+    # Precisa tratar caso de divisão por 0
+    points: List[Point] = [p1, p2, p3]
 
-  crossings: int = 0
-  for i in range(3):
+    crossings: int = 0
+    for i in range(3):
 
-    # todo verificar se esse problema tá resolvido
-    slope: float
-    if points[i].x == points[(i + 1) % 3].x:
-      slope = float('inf')
-    else:
-      slope = (points[(i + 1) % 3].y - points[i].y) / (points[(i + 1) % 3].x - points[i].x)
+        # todo verificar se esse problema tá resolvido
+        slope: float
+        if points[i].x == points[(i + 1) % 3].x:
+            slope = float('inf')
+        else:
+            slope = (points[(i + 1) % 3].y - points[i].y) / (points[(i + 1) % 3].x - points[i].x)
 
-    cond1: bool = points[i].x <= p.x < points[(i + 1) % 3].x
-    cond2: bool = points[(i + 1) % 3].x <= p.x < points[i].x
-    above: bool = p.y < slope * (p.x - points[i].x) + points[i].y
-    if (cond1 or cond2) and above:
-      crossings += 1
+        cond1: bool = points[i].x <= p.x < points[(i + 1) % 3].x
+        cond2: bool = points[(i + 1) % 3].x <= p.x < points[i].x
+        above: bool = p.y < slope * (p.x - points[i].x) + points[i].y
+        if (cond1 or cond2) and above:
+            crossings += 1
 
-  return crossings % 2 != 0
+    return crossings % 2 != 0
 
 
 def no_point_inside(p1: Point, p2: Point, p3: Point, polygon: Polygon) -> bool:
-  for p in polygon.points:
-    if p != p1 and p != p2 and p != p3:
-      if point_in_triangle(p1, p2, p3, p):
-        return False
-  return True
+    for p in polygon.points:
+        if p != p1 and p != p2 and p != p3:
+            if point_in_triangle(p1, p2, p3, p):
+                return False
+    return True
 
 
 def is_ear(polygon: Polygon, position: int) -> bool:
-  p1 = polygon.points[position]
-  p2 = polygon.points[(position + 1) % len(polygon.points)]
-  p3 = polygon.points[(position + 2) % len(polygon.points)]
+    p1 = polygon.points[position]
+    p2 = polygon.points[(position + 1) % len(polygon.points)]
+    p3 = polygon.points[(position + 2) % len(polygon.points)]
 
-  if orientation(p1, p2, p3) == -1 and no_point_inside(p1, p2, p3, polygon):
-    return True
-  
-  return False
+    if orientation(p1, p2, p3) == -1 and no_point_inside(p1, p2, p3, polygon):
+        return True
+
+    return False
 
 
 def triangulate(polygon: Polygon) -> Graph:
-  # todo verificar se está funcionando
-  graph = Graph()
+    # todo verificar se está funcionando
+    graph = Graph()
 
-  for point in polygon.points:
-    graph.add_node(Node(point))
+    for point in polygon.points:
+        graph.add_node(Node(point))
 
-  for node in range(len(graph.nodes)):
-    graph.add_edge(node, (node + 1) % len(graph.nodes))
+    for node in range(len(graph.nodes)):
+        graph.add_edge(node, (node + 1) % len(graph.nodes))
 
-  while len(polygon.points) > 3:
+    while len(polygon.points) > 3:
 
-    # For each position, checks it and the next two
-    # Dá pra otimizar essa parte, eu acho
-    for pos in range(len(polygon.points)):
-      if is_ear(polygon, pos):
-        # todo melhorar a eficiência da próxima linha talvez
-        graph.add_edge_to_points(polygon.points[pos], polygon.points[(pos + 2) % len(polygon.points)])
-        polygon.remove_point_at((pos + 1) % len(polygon.points))
-        break
+        # For each position, checks it and the next two
+        # Dá pra otimizar essa parte, eu acho
+        for pos in range(len(polygon.points)):
+            if is_ear(polygon, pos):
+                # todo melhorar a eficiência da próxima linha talvez
+                graph.add_edge_to_points(polygon.points[pos], polygon.points[(pos + 2) % len(polygon.points)])
+                polygon.remove_point_at((pos + 1) % len(polygon.points))
+                break
 
-  return graph
+    return graph
 
 
 def get_faces(graph: Graph) -> List[Set[int]]:
-  # todo verificar se está funcionando
-  input: str = graph.to_string()
+    # todo verificar se está funcionando
+    input: str = graph.to_string()
 
-  result = subprocess.run(["./main"], input=input, text=True, capture_output=True)
-  output: str = result.stdout
+    result = subprocess.run(["./main"], input=input, text=True, capture_output=True)
+    output: str = result.stdout
 
-  output = output.split('\n')
-  output.pop(0) # Remove a quantidade de vértices
+    output = output.split('\n')
+    output.pop(0)  # Remove a quantidade de vértices
 
-  faces: List[Set[int]] = []
+    faces: List[Set[int]] = []
 
-  for face in output:
-    vertices = face.split(' ')
+    for face in output:
+        vertices = face.split(' ')
 
-    if vertices[0] != '4':
-      continue
+        if vertices[0] != '4':
+            continue
 
-    # todo ver se a ordenação do set dá problema
-    faces.append(set([int(vertex) - 1 for vertex in vertices[1:]]))
+        # todo ver se a ordenação do set dá problema
+        faces.append(set([int(vertex) - 1 for vertex in vertices[1:]]))
 
-  return faces
+    return faces
 
 
 def get_dual(graph: Graph) -> Graph:
@@ -299,41 +303,60 @@ def get_dual(graph: Graph) -> Graph:
 
     return dual_graph
 
-
 def color(graph: Graph, dual: Graph) -> Dict[int, int]:
-    def is_safe(node: int, c: int) -> bool:
-        for neighbor in dual.nodes[node].neighbors:
-            if neighbor in color_map and color_map[neighbor] == c:
-                return False
+    def dfs(dual_node: int):
+        for neighbor in dual.nodes[dual_node].neighbors:
+            if neighbor not in dual_color_map:
+                # Encontrar as cores usadas nos vértices comuns do triângulo
+                common_vertices = set(graph.nodes[dual_node].neighbors).intersection(graph.nodes[neighbor].neighbors)
+                used_colors = set(primal_color_map[vertex] for vertex in common_vertices if vertex in primal_color_map)
+
+                # Verificar se há cores restantes
+                remaining_colors = list(set(available_colors) - used_colors)
+                if not remaining_colors:
+                    return False
+
+                remaining_color = remaining_colors[0]
+                for vertex in graph.nodes[neighbor].neighbors:
+                    if vertex not in primal_color_map:
+                        primal_color_map[vertex] = remaining_color
+                        break
+
+                dual_color_map[neighbor] = remaining_color
+                if not dfs(neighbor):
+                    return False
         return True
 
-    def dfs(node: int) -> bool:
-        for color in range(3):
-            if is_safe(node, color):
-                color_map[node] = color
-                if all(neighbor in color_map or dfs(neighbor) for neighbor in dual.nodes[node].neighbors):
-                    return True
-                del color_map[node]
-        return False
+    dual_color_map = {}
+    primal_color_map = {}
 
-    color_map = {}
+    available_colors = [0, 1, 2]
+
+    dual_color_map[0] = available_colors[0]
+
+    initial_triangle = list(graph.nodes[0].neighbors)[:3]
+    for i, vertex in enumerate(initial_triangle):
+        primal_color_map[vertex] = available_colors[i]
+
     if not dfs(0):
-        raise ValueError("Não foi possível colorir o grafo dual com 3 cores")
-    
-    return color_map
+        raise ValueError("Não foi possível colorir o grafo com 3 cores")
+
+    return primal_color_map
 
 
 def main():
-  filename: str = sys.argv[1]
-  polygon: Polygon = parse_input(filename)
-  graph: Graph = triangulate(polygon)
-  dual: Graph = get_dual(graph)
-  color_map: Dict[int, int] = color(graph, dual)
+    filename: str = sys.argv[1]
+    polygon: Polygon = parse_input(filename)
+    graph: Graph = triangulate(polygon)
+    dual: Graph = get_dual(graph)
+    color_map: Dict[int, int] = color(graph, dual)
 
-  plot_graph_colored(dual, color_map)
+    print("Color Map:", color_map)
 
-  get_faces(graph)
-    
+    plot_graph_colored(graph, color_map)
+
+    get_faces(graph)
 
 if __name__ == '__main__':
-  main()
+    main()
+
