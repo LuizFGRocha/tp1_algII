@@ -1,5 +1,5 @@
 import sys
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Tuple
 import plotly.graph_objects as go
 import subprocess
 
@@ -312,18 +312,19 @@ def get_faces(graph: Graph) -> List[Set[int]]:
     return faces
 
 
-def get_dual(graph: Graph) -> Graph:
+def get_dual(graph: Graph) -> Tuple[Graph, Dict[int, set]]:
     faces = get_faces(graph)
     dual_graph = Graph()
+    dual_to_primal: Dict[int, set] = {}
 
     # Cria um nó para cada face no grafo original
     for i, face in enumerate(faces):
         face_center = Point(sum(graph.nodes[v].point.x for v in face) / len(face),
                             sum(graph.nodes[v].point.y for v in face) / len(face))
         dual_graph.add_node(Node(face_center))
+        dual_to_primal[i] = face
 
     # Conecta nós no grafo dual se as faces originais compartilharem uma aresta
-    face_to_node = {frozenset(face): i for i, face in enumerate(faces)}
     for edge in graph.edges():
         incident_faces = [i for i, face in enumerate(faces) if edge.issubset(face)]
         if len(incident_faces) == 2:
@@ -331,45 +332,29 @@ def get_dual(graph: Graph) -> Graph:
 
     plot_two_graphs(graph, dual_graph)
 
-    return dual_graph
+    return dual_graph, dual_to_primal
 
-def color(graph: Graph, dual: Graph) -> Dict[int, int]:
-    def dfs(dual_node: int):
-        for neighbor in dual.nodes[dual_node].neighbors:
-            if neighbor not in dual_color_map:
-                # Encontrar as cores usadas nos vértices comuns do triângulo
-                common_vertices = set(graph.nodes[dual_node].neighbors).intersection(graph.nodes[neighbor].neighbors)
-                used_colors = set(primal_color_map[vertex] for vertex in common_vertices if vertex in primal_color_map)
 
-                # Verificar se há cores restantes
-                remaining_colors = list(set(available_colors) - used_colors)
-                if not remaining_colors:
-                    return False
+def color(graph: Graph, dual: Graph, dual_to_primal: Dict[int, set]) -> Dict[int, int]:
+    primal_color_map: Dict[int, int] = {i: -1 for i in range(len(graph.nodes))}
+    visited: Dict[int, bool] = {i: False for i in range(len(dual.nodes))}
 
-                remaining_color = remaining_colors[0]
-                for vertex in graph.nodes[neighbor].neighbors:
-                    if vertex not in primal_color_map:
-                        primal_color_map[vertex] = remaining_color
-                        break
+    def dfs(node: int):
+        available_colors: Set[int] = {1, 2, 3}
+        for vertex in dual_to_primal[node]:
+            if primal_color_map[vertex] != -1:
+                available_colors.remove(primal_color_map[vertex])
+        for vertex in dual_to_primal[node]:
+            if primal_color_map[vertex] == -1:
+                primal_color_map[vertex] = available_colors.pop()
 
-                dual_color_map[neighbor] = remaining_color
-                if not dfs(neighbor):
-                    return False
-        return True
+        visited[node] = True
 
-    dual_color_map = {}
-    primal_color_map = {}
+        for neighbor in dual.nodes[node].neighbors:
+            if not visited[neighbor]:
+                dfs(neighbor)
 
-    available_colors = [0, 1, 2]
-
-    dual_color_map[0] = available_colors[0]
-
-    initial_triangle = list(graph.nodes[0].neighbors)[:3]
-    for i, vertex in enumerate(initial_triangle):
-        primal_color_map[vertex] = available_colors[i]
-
-    if not dfs(0):
-        raise ValueError("Não foi possível colorir o grafo com 3 cores")
+    dfs(0)
 
     return primal_color_map
 
@@ -378,14 +363,12 @@ def main():
     filename: str = sys.argv[1]
     polygon: Polygon = parse_input(filename)
     graph: Graph = triangulate(polygon)
-    dual: Graph = get_dual(graph)
-    color_map: Dict[int, int] = color(graph, dual)
+    dual, dual_to_primal = get_dual(graph)
+    color_map: Dict[int, int] = color(graph, dual, dual_to_primal)
 
     print("Color Map:", color_map)
 
     plot_graph_colored(graph, color_map)
-
-    get_faces(graph)
 
 if __name__ == '__main__':
     main()
