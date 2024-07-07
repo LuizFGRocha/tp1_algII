@@ -290,6 +290,13 @@ def get_faces(graph: Graph) -> List[Set[int]]:
     # todo verificar se está funcionando
     input: str = graph.to_string()
 
+    result = subprocess.run(["ls", "./main"], capture_output=True)
+    if result.returncode != 0:
+        result = subprocess.run(["g++", "main.cpp", "-o", "main", "-Ofast"])
+        if result.returncode != 0:
+            raise ValueError("Erro ao compilar o programa. Verifique se o arquivo main.cpp existe e se você"
+                             "tem o compilador g++ instalado.")
+
     result = subprocess.run(["./main"], input=input, text=True, capture_output=True)
     output: str = result.stdout
 
@@ -372,4 +379,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
