@@ -133,6 +133,35 @@ def plot_graph(graph: Graph):
 
     fig.show()
 
+def plot_two_graphs(graph1, graph2, color_map1=None, color_map2=None):
+    fig = go.Figure()
+
+    # Adiciona os nós e arestas do primeiro grafo
+    for idx, node in enumerate(graph1.nodes):
+        color = color_map1[idx] if color_map1 and idx in color_map1 else 'blue'
+        fig.add_trace(go.Scatter(x=[node.point.x], y=[node.point.y], mode='markers',
+                                 marker=dict(color=color)))
+        for neighbor in node.neighbors:
+            fig.add_trace(go.Scatter(x=[node.point.x, graph1.nodes[neighbor].point.x],
+                                     y=[node.point.y, graph1.nodes[neighbor].point.y], mode='lines',
+                                     line=dict(color=color)))
+
+    # Adiciona os nós e arestas do segundo grafo
+    for idx, node in enumerate(graph2.nodes):
+        color = color_map2[idx] if color_map2 and idx in color_map2 else 'red'
+        fig.add_trace(go.Scatter(x=[node.point.x], y=[node.point.y], mode='markers',
+                                 marker=dict(color=color)))
+        for neighbor in node.neighbors:
+            fig.add_trace(go.Scatter(x=[node.point.x, graph2.nodes[neighbor].point.x],
+                                     y=[node.point.y, graph2.nodes[neighbor].point.y], mode='lines',
+                                     line=dict(color=color)))
+
+    # Atualiza o layout da figura
+    fig.update_layout(title="Dois Grafos", xaxis_title="X", yaxis_title="Y")
+
+    # Mostra a figura
+    fig.show()
+
 
 def plot_graph_colored(graph: Graph, color_map: dict):
     fig = go.Figure()
@@ -207,7 +236,7 @@ def point_in_triangle(p1: Point, p2: Point, p3: Point, p: Point) -> bool:
 
         cond1: bool = points[i].x <= p.x < points[(i + 1) % 3].x
         cond2: bool = points[(i + 1) % 3].x <= p.x < points[i].x
-        above: bool = p.y < slope * (p.x - points[i].x) + points[i].y
+        above: bool = p.y <= slope * (p.x - points[i].x) + points[i].y # Mudei para <= espero que não dê problema kk
         if (cond1 or cond2) and above:
             crossings += 1
 
@@ -265,7 +294,7 @@ def get_faces(graph: Graph) -> List[Set[int]]:
     output: str = result.stdout
 
     output = output.split('\n')
-    output.pop(0)  # Remove a quantidade de vértices
+    qtd: int = int(output.pop(0))  # Remove a quantidade de vértices
 
     faces: List[Set[int]] = []
 
@@ -275,8 +304,10 @@ def get_faces(graph: Graph) -> List[Set[int]]:
         if vertices[0] != '4':
             continue
 
-        # todo ver se a ordenação do set dá problema
         faces.append(set([int(vertex) - 1 for vertex in vertices[1:]]))
+
+    if len(faces) != qtd - 1:
+        raise ValueError("Número de faces incorreto")
 
     return faces
 
@@ -298,8 +329,7 @@ def get_dual(graph: Graph) -> Graph:
         if len(incident_faces) == 2:
             dual_graph.add_edge(incident_faces[0], incident_faces[1])
 
-    plot_graph(graph)
-    plot_graph(dual_graph)
+    plot_two_graphs(graph, dual_graph)
 
     return dual_graph
 
