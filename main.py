@@ -165,14 +165,20 @@ def plot_two_graphs(graph1, graph2, color_map1=None, color_map2=None):
 
 def plot_graph_colored(graph: Graph, color_map: dict):
     fig = go.Figure()
+    
+    # Definindo a paleta de cores
+    colors = {1: 'red', 2: 'green', 3: 'blue'}
 
     for idx, node in enumerate(graph.nodes):
         if idx not in color_map:
             print(f"Warning: Node {idx} not in color_map")
             continue
 
+        # Mapeando o valor do color_map para uma das 3 cores
+        color = colors[color_map[idx]]
+
         fig.add_trace(go.Scatter(x=[node.point.x], y=[node.point.y], mode='markers',
-                                 marker=dict(color=color_map[idx])))
+                                 marker=dict(color=color)))
 
     for node in graph.nodes:
         for neighbor in node.neighbors:
@@ -182,9 +188,6 @@ def plot_graph_colored(graph: Graph, color_map: dict):
 
     fig.update_layout(title="Grafo Colorido", xaxis_title="X", yaxis_title="Y")
     fig.show()
-
-
-
 
 def parse_input(filename: str) -> Polygon:
     polygon = Polygon()
