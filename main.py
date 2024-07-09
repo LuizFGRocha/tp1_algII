@@ -102,7 +102,12 @@ class Graph:
             string += "\n"
 
         return string
-
+    
+polygon = Polygon()
+primal_graph = Graph()
+dual_graph = Graph()
+dual_to_primal = {}
+primal_color_map = {}
 
 def plot_polygon(polygon: Polygon):
     x_coords = [point.x for point in polygon.points]
@@ -186,9 +191,7 @@ def plot_graph_colored(graph: Graph, color_map: dict):
 
 
 
-def parse_input(filename: str) -> Polygon:
-    polygon = Polygon()
-
+def parse_input(filename: str) -> None:
     with open(filename, 'r') as file:
         size: int = int(file.readline())
 
@@ -202,8 +205,6 @@ def parse_input(filename: str) -> Polygon:
             second_value = float(second_str[0]) / float(second_str[1])
 
             polygon.add_point(Point(first_value, second_value))
-
-    return polygon
 
 
 def orientation(p1: Point, p2: Point, p3: Point) -> int:
@@ -243,7 +244,7 @@ def point_in_triangle(p1: Point, p2: Point, p3: Point, p: Point) -> bool:
     return crossings % 2 != 0
 
 
-def no_point_inside(p1: Point, p2: Point, p3: Point, polygon: Polygon) -> bool:
+def no_point_inside(p1: Point, p2: Point, p3: Point) -> bool:
     for p in polygon.points:
         if p != p1 and p != p2 and p != p3:
             if point_in_triangle(p1, p2, p3, p):
@@ -251,44 +252,43 @@ def no_point_inside(p1: Point, p2: Point, p3: Point, polygon: Polygon) -> bool:
     return True
 
 
-def is_ear(polygon: Polygon, position: int) -> bool:
+def is_ear(position: int) -> bool:
     p1 = polygon.points[position]
     p2 = polygon.points[(position + 1) % len(polygon.points)]
     p3 = polygon.points[(position + 2) % len(polygon.points)]
 
-    if orientation(p1, p2, p3) == -1 and no_point_inside(p1, p2, p3, polygon):
+    if orientation(p1, p2, p3) == -1 and no_point_inside(p1, p2, p3):
         return True
 
     return False
 
 
-def triangulate(polygon: Polygon) -> Graph:
+def triangulate() -> Graph:
     # todo verificar se está funcionando
-    graph = Graph()
 
     for point in polygon.points:
-        graph.add_node(Node(point))
+        primal_graph.add_node(Node(point))
 
-    for node in range(len(graph.nodes)):
-        graph.add_edge(node, (node + 1) % len(graph.nodes))
+    for node in range(len(primal_graph.nodes)):
+        primal_graph.add_edge(node, (node + 1) % len(primal_graph.nodes))
 
     while len(polygon.points) > 3:
 
         # For each position, checks it and the next two
         # Dá pra otimizar essa parte, eu acho
         for pos in range(len(polygon.points)):
-            if is_ear(polygon, pos):
+            if is_ear(pos):
                 # todo melhorar a eficiência da próxima linha talvez
-                graph.add_edge_to_points(polygon.points[pos], polygon.points[(pos + 2) % len(polygon.points)])
+                primal_graph.add_edge_to_points(polygon.points[pos], polygon.points[(pos + 2) % len(polygon.points)])
                 polygon.remove_point_at((pos + 1) % len(polygon.points))
                 break
 
-    return graph
+    return primal_graph
 
 
-def get_faces(graph: Graph) -> List[Set[int]]:
+def get_faces() -> List[Set[int]]:
     # todo verificar se está funcionando
-    input: str = graph.to_string()
+    input: str = primal_graph.to_string()
 
     result = subprocess.run(["ls", "./main"], capture_output=True)
     if result.returncode != 0:
@@ -319,32 +319,31 @@ def get_faces(graph: Graph) -> List[Set[int]]:
     return faces
 
 
-def get_dual(graph: Graph) -> Tuple[Graph, Dict[int, set]]:
-    faces = get_faces(graph)
-    dual_graph = Graph()
-    dual_to_primal: Dict[int, set] = {}
+def get_dual() -> None:
+    faces = get_faces()
 
     # Cria um nó para cada face no grafo original
     for i, face in enumerate(faces):
-        face_center = Point(sum(graph.nodes[v].point.x for v in face) / len(face),
-                            sum(graph.nodes[v].point.y for v in face) / len(face))
+        face_center = Point(sum(primal_graph.nodes[v].point.x for v in face) / len(face),
+                            sum(primal_graph.nodes[v].point.y for v in face) / len(face))
         dual_graph.add_node(Node(face_center))
         dual_to_primal[i] = face
 
     # Conecta nós no grafo dual se as faces originais compartilharem uma aresta
-    for edge in graph.edges():
+    for edge in primal_graph.edges():
         incident_faces = [i for i, face in enumerate(faces) if edge.issubset(face)]
         if len(incident_faces) == 2:
             dual_graph.add_edge(incident_faces[0], incident_faces[1])
 
-    plot_two_graphs(graph, dual_graph)
+    plot_two_graphs(primal_graph, dual_graph)
 
     return dual_graph, dual_to_primal
 
 
-def color(graph: Graph, dual: Graph, dual_to_primal: Dict[int, set]) -> Dict[int, int]:
-    primal_color_map: Dict[int, int] = {i: -1 for i in range(len(graph.nodes))}
-    visited: Dict[int, bool] = {i: False for i in range(len(dual.nodes))}
+def color() -> Dict[int, int]:
+    global primal_color_map
+    primal_color_map = {i: -1 for i in range(len(primal_graph.nodes))}
+    visited: Dict[int, bool] = {i: False for i in range(len(dual_graph.nodes))}
 
     def dfs(node: int):
         available_colors: Set[int] = {1, 2, 3}
@@ -357,7 +356,7 @@ def color(graph: Graph, dual: Graph, dual_to_primal: Dict[int, set]) -> Dict[int
 
         visited[node] = True
 
-        for neighbor in dual.nodes[node].neighbors:
+        for neighbor in dual_graph.nodes[node].neighbors:
             if not visited[neighbor]:
                 dfs(neighbor)
 
@@ -368,14 +367,15 @@ def color(graph: Graph, dual: Graph, dual_to_primal: Dict[int, set]) -> Dict[int
 
 def main():
     filename: str = sys.argv[1]
-    polygon: Polygon = parse_input(filename)
-    graph: Graph = triangulate(polygon)
-    dual, dual_to_primal = get_dual(graph)
-    color_map: Dict[int, int] = color(graph, dual, dual_to_primal)
 
-    print("Color Map:", color_map)
+    parse_input(filename)
+    triangulate()
+    get_dual()
+    color()
 
-    plot_graph_colored(graph, color_map)
+    print("Color Map:", primal_color_map)
+
+    plot_graph_colored(primal_graph, primal_color_map)
 
 if __name__ == '__main__':
     main()
