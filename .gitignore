@@ -1,2 +1,4 @@
 /.vscode
 main
+/media
+/__pycache__
