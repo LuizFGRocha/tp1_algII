@@ -1,7 +1,9 @@
 import sys
 from typing import List, Dict, Set, Tuple
-import plotly.graph_objects as go
 import subprocess
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from copy import deepcopy
 
 
 class Point:
@@ -108,90 +110,90 @@ primal_graph = Graph()
 dual_graph = Graph()
 dual_to_primal = {}
 primal_color_map = {}
+cameras = []
 
-def plot_polygon(polygon: Polygon):
-    x_coords = [point.x for point in polygon.points]
-    y_coords = [point.y for point in polygon.points]
+color_dict = {-1: "red", 1: 'yellow', 2: "blue", 3: "green"}
 
-    if len(polygon.points) > 0:
-        x_coords.append(polygon.points[0].x)
-        y_coords.append(polygon.points[0].y)
+class State:
+    polygon: Polygon
+    primal_graph: Graph
+    dual_graph: Graph
+    primal_color_map: Dict[int, int]
+    cameras: List[Point]
 
-    fig = go.Figure(go.Scatter(x=x_coords, y=y_coords, fill="toself", mode='lines+markers'))
+    def __init__(self):
+        global polygon, primal_graph, dual_graph, dual_to_primal, primal_color_map, cameras
 
-    fig.update_layout(title="Polígono", xaxis_title="X", yaxis_title="Y")
-
-    fig.show()
-
-
-def plot_graph(graph: Graph):
-    x_coords = [node.point.x for node in graph.nodes]
-    y_coords = [node.point.y for node in graph.nodes]
-
-    fig = go.Figure(go.Scatter(x=x_coords, y=y_coords, mode='markers'))
-
-    for node in graph.nodes:
-        for neighbor in node.neighbors:
-            fig.add_trace(go.Scatter(x=[node.point.x, graph.nodes[neighbor].point.x], y=[node.point.y, graph.nodes[neighbor].point.y], mode='lines'))
-
-    fig.update_layout(title="Grafo", xaxis_title="X", yaxis_title="Y")
-
-    fig.show()
-
-def plot_two_graphs(graph1, graph2, color_map1=None, color_map2=None):
-    fig = go.Figure()
-
-    # Adiciona os nós e arestas do primeiro grafo
-    for idx, node in enumerate(graph1.nodes):
-        color = color_map1[idx] if color_map1 and idx in color_map1 else 'blue'
-        fig.add_trace(go.Scatter(x=[node.point.x], y=[node.point.y], mode='markers',
-                                 marker=dict(color=color)))
-        for neighbor in node.neighbors:
-            fig.add_trace(go.Scatter(x=[node.point.x, graph1.nodes[neighbor].point.x],
-                                     y=[node.point.y, graph1.nodes[neighbor].point.y], mode='lines',
-                                     line=dict(color=color)))
-
-    # Adiciona os nós e arestas do segundo grafo
-    for idx, node in enumerate(graph2.nodes):
-        color = color_map2[idx] if color_map2 and idx in color_map2 else 'red'
-        fig.add_trace(go.Scatter(x=[node.point.x], y=[node.point.y], mode='markers',
-                                 marker=dict(color=color)))
-        for neighbor in node.neighbors:
-            fig.add_trace(go.Scatter(x=[node.point.x, graph2.nodes[neighbor].point.x],
-                                     y=[node.point.y, graph2.nodes[neighbor].point.y], mode='lines',
-                                     line=dict(color=color)))
-
-    # Atualiza o layout da figura
-    fig.update_layout(title="Dois Grafos", xaxis_title="X", yaxis_title="Y")
-
-    # Mostra a figura
-    fig.show()
+        self.polygon = deepcopy(polygon)
+        self.primal_graph = deepcopy(primal_graph)
+        self.dual_graph = deepcopy(dual_graph)
+        self.primal_color_map = deepcopy(primal_color_map)
+        self.cameras = deepcopy(cameras)
 
 
-def plot_graph_colored(graph: Graph, color_map: dict):
-    fig = go.Figure()
+class StateSequence:
+    states: List[State]
 
-    for idx, node in enumerate(graph.nodes):
-        if idx not in color_map:
-            print(f"Warning: Node {idx} not in color_map")
-            continue
+    def __init__(self):
+        self.states = []
 
-        fig.add_trace(go.Scatter(x=[node.point.x], y=[node.point.y], mode='markers',
-                                 marker=dict(color=color_map[idx])))
-
-    for node in graph.nodes:
-        for neighbor in node.neighbors:
-            fig.add_trace(go.Scatter(x=[node.point.x, graph.nodes[neighbor].point.x],
-                                     y=[node.point.y, graph.nodes[neighbor].point.y],
-                                     mode='lines', line=dict(color='grey')))
-
-    fig.update_layout(title="Grafo Colorido", xaxis_title="X", yaxis_title="Y")
-    fig.show()
+    def add_state(self) -> None:
+        self.states.append(State())
 
 
+sequence = StateSequence()
+
+def create_animation(sequence: StateSequence):
+    fig, ax = plt.subplots()
+    
+    def update(frame):
+        ax.clear()
+        state = sequence.states[frame]
+        polygon = state.polygon
+        primal_graph = state.primal_graph
+        dual_graph = state.dual_graph
+        primal_color_map = state.primal_color_map
+        
+        # Draw polygon points with increased size and edge thickness
+        if len(polygon.points) > 0:
+            polygon_x = [point.x for point in polygon.points] + [polygon.points[0].x]  # closing the polygon loop
+            polygon_y = [point.y for point in polygon.points] + [polygon.points[0].y]
+            ax.plot(polygon_x, polygon_y, 'b-', marker='o', markersize=10, linewidth=3)
+        
+        # Draw primal graph nodes and edges
+        for node in primal_graph.nodes:
+            x, y = node.point.x, node.point.y
+            ax.plot(x, y, 'ro', markersize=5)  # Smaller size for primal graph nodes
+            for neighbor_index in node.neighbors:
+                neighbor = primal_graph.nodes[neighbor_index].point
+                ax.plot([x, neighbor.x], [y, neighbor.y], 'r-', linewidth=1)
+        
+        # Apply colors from primal_color_map
+        for node_index, color in primal_color_map.items():
+            node = primal_graph.nodes[node_index]
+            ax.plot(node.point.x, node.point.y, 'o', c=color_dict[color], markersize=5)
+
+        # Draws cameras
+        for camera in state.cameras:
+            ax.plot(camera.x, camera.y, 'kx', markersize=10, color='black')
+        
+        # Draw dual graph nodes and edges on top of primal graph
+        for node in dual_graph.nodes:
+            x, y = node.point.x, node.point.y
+            ax.plot(x, y, 'o', markersize=5, color='gray')  # Dual graph nodes in gray
+            for neighbor_index in node.neighbors:
+                neighbor = dual_graph.nodes[neighbor_index].point
+                ax.plot([x, neighbor.x], [y, neighbor.y], color='gray', linewidth=1)
+        
+        ax.set_title(f'State {frame + 1}')
+    
+    ani = animation.FuncAnimation(fig, update, frames=len(sequence.states), repeat=False, interval=25)
+    
+    plt.show()
 
 
 def parse_input(filename: str) -> None:
+    # todo fazer funcionar com separação com espaço ou breakline
     with open(filename, 'r') as file:
         size: int = int(file.readline())
 
@@ -205,6 +207,8 @@ def parse_input(filename: str) -> None:
             second_value = float(second_str[0]) / float(second_str[1])
 
             polygon.add_point(Point(first_value, second_value))
+
+    sequence.add_state()
 
 
 def orientation(p1: Point, p2: Point, p3: Point) -> int:
@@ -264,13 +268,15 @@ def is_ear(position: int) -> bool:
 
 
 def triangulate() -> Graph:
-    # todo verificar se está funcionando
+    global polygon
 
     for point in polygon.points:
         primal_graph.add_node(Node(point))
 
     for node in range(len(primal_graph.nodes)):
         primal_graph.add_edge(node, (node + 1) % len(primal_graph.nodes))
+
+    sequence.add_state()
 
     while len(polygon.points) > 3:
 
@@ -281,7 +287,11 @@ def triangulate() -> Graph:
                 # todo melhorar a eficiência da próxima linha talvez
                 primal_graph.add_edge_to_points(polygon.points[pos], polygon.points[(pos + 2) % len(polygon.points)])
                 polygon.remove_point_at((pos + 1) % len(polygon.points))
+                sequence.add_state()
                 break
+
+    # Apaga o polígono
+    polygon = Polygon()
 
     return primal_graph
 
@@ -335,13 +345,13 @@ def get_dual() -> None:
         if len(incident_faces) == 2:
             dual_graph.add_edge(incident_faces[0], incident_faces[1])
 
-    plot_two_graphs(primal_graph, dual_graph)
+    sequence.add_state()
 
     return dual_graph, dual_to_primal
 
 
 def color() -> Dict[int, int]:
-    global primal_color_map
+    global primal_color_map, dual_graph
     primal_color_map = {i: -1 for i in range(len(primal_graph.nodes))}
     visited: Dict[int, bool] = {i: False for i in range(len(dual_graph.nodes))}
 
@@ -353,6 +363,7 @@ def color() -> Dict[int, int]:
         for vertex in dual_to_primal[node]:
             if primal_color_map[vertex] == -1:
                 primal_color_map[vertex] = available_colors.pop()
+                sequence.add_state()
 
         visited[node] = True
 
@@ -362,20 +373,50 @@ def color() -> Dict[int, int]:
 
     dfs(0)
 
+    # Apaga o grafo dual
+    dual_graph = Graph()
+
+    # Escolhe do map a cor com menos ocorrências
+    color_count = {1: 0, 2: 0, 3: 0}
+    for color in primal_color_map.values():
+        color_count[color] += 1
+
+    min_color = min(color_count, key=color_count.get)
+
+    for vertex in primal_color_map:
+        if primal_color_map[vertex] == min_color:
+            cameras.append(primal_graph.nodes[vertex].point)
+
+    sequence.add_state()
+
     return primal_color_map
+
+
+def run(filename: str) -> None:
+    parse_input(filename)
+
+    triangulate()
+    get_dual()
+    color()
+
+    sequence.add_state()
+
+    create_animation(sequence)
 
 
 def main():
     filename: str = sys.argv[1]
 
     parse_input(filename)
+
     triangulate()
     get_dual()
     color()
 
-    print("Color Map:", primal_color_map)
+    sequence.add_state()
 
-    plot_graph_colored(primal_graph, primal_color_map)
+    create_animation(sequence)
+
 
 if __name__ == '__main__':
     main()
