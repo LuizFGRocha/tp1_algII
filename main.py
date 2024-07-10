@@ -256,10 +256,10 @@ def nenhum_ponto_dentro(p1: Ponto, p2: Ponto, p3: Ponto) -> bool:
     return True
 
 
-def is_ear(position: int) -> bool:
-    p1 = poligono.pontos[position]
-    p2 = poligono.pontos[(position + 1) % len(poligono.pontos)]
-    p3 = poligono.pontos[(position + 2) % len(poligono.pontos)]
+def eh_orelha(posicao: int) -> bool:
+    p1 = poligono.pontos[posicao]
+    p2 = poligono.pontos[(posicao + 1) % len(poligono.pontos)]
+    p3 = poligono.pontos[(posicao + 2) % len(poligono.pontos)]
 
     if orientacao(p1, p2, p3) == -1 and nenhum_ponto_dentro(p1, p2, p3):
         return True
@@ -283,7 +283,7 @@ def triangular() -> Grafo:
         # Para cada posição, checamos ela e as duas seguintes
         # Dá pra otimizar essa parte, eu acho
         for pos in range(len(poligono.pontos)):
-            if is_ear(pos):
+            if eh_orelha(pos):
                 # melhorar a eficiência da próxima linha talvez
                 grafo_primal.add_aresta_a_pontos(poligono.pontos[pos], poligono.pontos[(pos + 2) % len(poligono.pontos)])
                 poligono.remove_ponto_em((pos + 1) % len(poligono.pontos))
