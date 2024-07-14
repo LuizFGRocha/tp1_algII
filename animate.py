@@ -15,7 +15,8 @@ class Player(FuncAnimation):
         self.setup(pos)
         FuncAnimation.__init__(self,self.fig, self.func, frames=self.play(), 
                                            init_func=init_func, fargs=fargs,
-                                           save_count=save_count, **kwargs )    
+                                           save_count=save_count, **kwargs,
+                                           cache_frame_data=False )    
 
     def play(self):
         while self.runs:
