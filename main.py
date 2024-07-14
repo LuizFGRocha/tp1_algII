@@ -110,6 +110,7 @@ grafo_dual = Grafo()
 dual_a_primal = {}
 mapa_cor_primal = {}
 cameras = []
+face_explorada = set()
 
 color_dict = {-1: "red", 1: 'yellow', 2: "blue", 3: "green"}
 
@@ -119,15 +120,17 @@ class Estado:
     grafo_dual: Grafo
     mapa_cor_primal: Dict[int, int]
     cameras: List[Ponto]
+    face_explorada: Set[int]
 
     def __init__(self):
-        global poligono, grafo_primal, grafo_dual, dual_a_primal, mapa_cor_primal, cameras
+        global poligono, grafo_primal, grafo_dual, dual_a_primal, mapa_cor_primal, cameras, face_explorada
 
         self.poligono = deepcopy(poligono)
         self.grafo_primal = deepcopy(grafo_primal)
         self.grafo_dual = deepcopy(grafo_dual)
         self.mapa_cor_primal = deepcopy(mapa_cor_primal)
         self.cameras = deepcopy(cameras)
+        self.face_explorada = deepcopy(face_explorada)
 
 
 class SequenciaEstados:
@@ -154,6 +157,9 @@ def cria_animacao(sequencia: SequenciaEstados):
         grafo_primal = estado.grafo_primal
         grafo_dual = estado.grafo_dual
         mapa_cor_primal = estado.mapa_cor_primal
+
+        plt.suptitle(f'Estado {frame + 1}')
+        ax.set_title('Em azul escuro, o polígono, em vermelho, o grafo primal, em cinza, o grafo dual.')
         
         # Desenha os pontos do poligono com area maior e arestas mais grossas
         if len(poligono.pontos) > 0:
@@ -176,10 +182,12 @@ def cria_animacao(sequencia: SequenciaEstados):
 
         # Desenha cameras
         for camera in estado.cameras:
-            ax.plot(camera.x, camera.y, 'kx', markersize=10, color='black')
+            ax.plot(camera.x, camera.y, 'kx', markersize=10)
 
         if len(estado.cameras) > 0:
-            ax.set_title(f'Estado final - {len(estado.cameras)} câmeras')
+            plt.suptitle(f'Estado final - {len(estado.cameras)} câmeras')
+            ax.set_title('Em azul escuro, o polígono, em vermelho, o grafo primal, em cinza, o grafo dual.\n'
+                            'As câmeras estão representadas por um X preto.')
         
         # Desenha nos e arestas do grafo dual em cima do primal
         for no in grafo_dual.nos:
@@ -188,8 +196,14 @@ def cria_animacao(sequencia: SequenciaEstados):
             for vizinho_index in no.vizinhos:
                 vizinho = grafo_dual.nos[vizinho_index].ponto
                 ax.plot([x, vizinho.x], [y, vizinho.y], color='gray', linewidth=1)
-        
-        ax.set_title(f'Estado {frame + 1}')
+
+        # Colore a face explorada
+        print(len(estado.face_explorada))
+        if len(estado.face_explorada) > 0:
+            x_coords = [grafo_primal.nos[i].ponto.x for i in estado.face_explorada]
+            y_coords = [grafo_primal.nos[i].ponto.y for i in estado.face_explorada]
+            ax.fill(x_coords, y_coords, color='lightblue')
+
     
     # Instanciando Player
     ani = Player(fig, update, maxi=len(sequencia.estados)-1)
@@ -198,20 +212,25 @@ def cria_animacao(sequencia: SequenciaEstados):
 
 
 def parse_entrada(arquivo: str) -> None:
-    # fazer funcionar com separação com espaço ou breakline
+    entrada: str = ''
     with open(arquivo, 'r') as file:
-        tam: int = int(file.readline())
+        while True:
+            linha = file.readline()
+            if not linha:
+                break
+            entrada += linha + ' '
 
-        for i in range(tam):
-            inputs = file.readline().split()
+    entrada = entrada.split()
+    tamanho = int(entrada[0])
+    entrada = entrada[1:]
 
-            pri_str = inputs[0].split('/')
-            pri_value = float(pri_str[0]) / float(pri_str[1])
+    for i in range(0, 2 * tamanho, 2):
+        first_str = entrada[i].split('/')
+        first_value = float(first_str[0]) / float(first_str[1])
+        second_str = entrada[i+1].split('/')
+        second_value = float(second_str[0]) / float(second_str[1])
 
-            seg_str = inputs[1].split('/')
-            seg_value = float(seg_str[0]) / float(seg_str[1])
-
-            poligono.add_ponto(Ponto(pri_value, seg_value))
+        poligono.add_ponto(Ponto(first_value, second_value))
 
     sequencia.add_estado()
 
@@ -356,11 +375,14 @@ def get_dual() -> None:
 
 
 def cor() -> Dict[int, int]:
-    global mapa_cor_primal, grafo_dual
+    global mapa_cor_primal, grafo_dual, face_explorada
     mapa_cor_primal = {i: -1 for i in range(len(grafo_primal.nos))}
     visitados: Dict[int, bool] = {i: False for i in range(len(grafo_dual.nos))}
 
     def dfs(no: int):
+        global face_explorada
+        face_explorada = (dual_a_primal[no])
+        sequencia.add_estado()
         dispo_cores: Set[int] = {1, 2, 3}
         for vertex in dual_a_primal[no]:
             if mapa_cor_primal[vertex] != -1:
@@ -377,6 +399,8 @@ def cor() -> Dict[int, int]:
                 dfs(vizinho)
 
     dfs(0)
+    face_explorada = set()
+    sequencia.add_estado()
 
     # Apaga o grafo dual
     grafo_dual = Grafo()
@@ -395,18 +419,6 @@ def cor() -> Dict[int, int]:
     sequencia.add_estado()
 
     return mapa_cor_primal
-
-
-def run(arquivo: str) -> None:
-    parse_entrada(arquivo)
-
-    triangular()
-    get_dual()
-    cor()
-
-    sequencia.add_estado()
-
-    cria_animacao(sequencia)
 
 
 def main():
