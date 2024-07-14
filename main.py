@@ -205,7 +205,7 @@ def cria_animacao(sequencia: SequenciaEstados):
 
     
     # Instanciando Player
-    ani = Player(fig, update, maxi=len(sequencia.estados)-1)
+    ani = Player(fig, update, maxi=len(sequencia.estados)-1, interval=250)
     
     plt.show()
 
@@ -428,8 +428,6 @@ def main():
     triangular()
     get_dual()
     cor()
-
-    sequencia.add_estado()
 
     cria_animacao(sequencia)
 
