@@ -1,10 +1,9 @@
 import sys
-from typing import List, Dict, Set, Tuple
+from typing import List, Dict, Set
 import subprocess
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from copy import deepcopy
-
+from animate import *
 
 class Ponto:
 
@@ -144,7 +143,9 @@ class SequenciaEstados:
 sequencia = SequenciaEstados()
 
 def cria_animacao(sequencia: SequenciaEstados):
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(1, 1, figsize=(16, 9))
+
+    ax.set_aspect('equal', adjustable='datalim')
     
     def update(frame):
         ax.clear()
@@ -176,6 +177,9 @@ def cria_animacao(sequencia: SequenciaEstados):
         # Desenha cameras
         for camera in estado.cameras:
             ax.plot(camera.x, camera.y, 'kx', markersize=10, color='black')
+
+        if len(estado.cameras) > 0:
+            ax.set_title(f'Estado final - {len(estado.cameras)} câmeras')
         
         # Desenha nos e arestas do grafo dual em cima do primal
         for no in grafo_dual.nos:
@@ -187,7 +191,8 @@ def cria_animacao(sequencia: SequenciaEstados):
         
         ax.set_title(f'Estado {frame + 1}')
     
-    ani = animation.FuncAnimation(fig, update, frames=len(sequencia.estados), repeat=False, interval=25)
+    # Instanciando Player
+    ani = Player(fig, update, maxi=len(sequencia.estados)-1)
     
     plt.show()
 
