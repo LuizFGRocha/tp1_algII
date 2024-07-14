@@ -198,7 +198,6 @@ def cria_animacao(sequencia: SequenciaEstados):
                 ax.plot([x, vizinho.x], [y, vizinho.y], color='gray', linewidth=1)
 
         # Colore a face explorada
-        print(len(estado.face_explorada))
         if len(estado.face_explorada) > 0:
             x_coords = [grafo_primal.nos[i].ponto.x for i in estado.face_explorada]
             y_coords = [grafo_primal.nos[i].ponto.y for i in estado.face_explorada]
