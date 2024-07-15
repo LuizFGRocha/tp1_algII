@@ -249,13 +249,11 @@ def orientacao(p1: Ponto, p2: Ponto, p3: Ponto) -> int:
 
 
 def ponto_no_triangulo(p1: Ponto, p2: Ponto, p3: Ponto, p: Ponto) -> bool:
-    # Precisa tratar caso de divisão por 0
     pontos: List[Ponto] = [p1, p2, p3]
 
     cruzamentos: int = 0
     for i in range(3):
 
-        # todo verificar se esse problema tá resolvido
         inclinacao: float
         if pontos[i].x == pontos[(i + 1) % 3].x:
             inclinacao = float('inf')
@@ -264,7 +262,7 @@ def ponto_no_triangulo(p1: Ponto, p2: Ponto, p3: Ponto, p: Ponto) -> bool:
 
         cond1: bool = pontos[i].x <= p.x < pontos[(i + 1) % 3].x
         cond2: bool = pontos[(i + 1) % 3].x <= p.x < pontos[i].x
-        acima: bool = p.y <= inclinacao * (p.x - pontos[i].x) + pontos[i].y # Mudei para <= espero que não dê problema kk
+        acima: bool = p.y <= inclinacao * (p.x - pontos[i].x) + pontos[i].y
         if (cond1 or cond2) and acima:
             cruzamentos += 1
 
@@ -304,10 +302,8 @@ def triangular() -> Grafo:
     while len(poligono.pontos) > 3:
 
         # Para cada posição, checamos ela e as duas seguintes
-        # Dá pra otimizar essa parte, eu acho
         for pos in range(len(poligono.pontos)):
             if eh_orelha(pos):
-                # melhorar a eficiência da próxima linha talvez
                 grafo_primal.add_aresta_a_pontos(poligono.pontos[pos], poligono.pontos[(pos + 2) % len(poligono.pontos)])
                 poligono.remove_ponto_em((pos + 1) % len(poligono.pontos))
                 sequencia.add_estado()
@@ -320,7 +316,6 @@ def triangular() -> Grafo:
 
 
 def get_faces() -> List[Set[int]]:
-    # verificar se está funcionando
     input: str = grafo_primal.to_string()
 
     resultado = subprocess.run(["ls", "./main"], capture_output=True)
