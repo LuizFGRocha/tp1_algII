@@ -3,7 +3,7 @@ from typing import List, Dict, Set
 import subprocess
 import matplotlib.pyplot as plt
 from copy import deepcopy
-from animate import *
+from lib.animate import *
 
 class Ponto:
 

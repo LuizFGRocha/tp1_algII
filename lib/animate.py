@@ -2,6 +2,11 @@ from matplotlib.animation import FuncAnimation
 import mpl_toolkits.axes_grid1
 import matplotlib.widgets
 
+# Decorador da função de animação do matplotlib. Faz com que 
+# existam botões de play/pause e próximo/anterior. 
+# A animação ainda funciona com a função padrão, mas sem os botões, da seguinte forma:
+# ani = animation.FuncAnimation(fig, update, frames=len(sequencia.estados), repeat=False, interval=250)
+# Note que é necessário importar animation de matplotlib.animation
 class Player(FuncAnimation):
     def __init__(self, fig, func, frames=None, init_func=None, fargs=None,
                  save_count=None, mini=0, maxi=100, pos=(0.125, 0.92), **kwargs):
