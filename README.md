@@ -14,3 +14,5 @@ Para executar o programa para uma entrada no formato das disponíveis em [https:
 onde input é a entrada.
 
 Após a execução do programa, será aberta uma janela em que será exibida uma animação do processo. Ela pode ser pausada e executada passo a passo manualmente.
+
+Há alguns exemplos de entrada na pasta inputs. Tente `python main.py inputs/input2.txt`!
